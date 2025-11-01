@@ -1,0 +1,67 @@
+name: CD BlueGreen
+on:
+  workflow_dispatch:
+    inputs:
+      to_color:
+        description: "Switch traffic to color (blue|green)"
+        required: true
+        default: "green"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/bluegreen-demo
+      KCONF: ${{ secrets.KUBECONFIG_DATA }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare kubeconfig
+        run: |
+          echo "$KCONF" | base64 -d > kubeconfig
+          export KUBECONFIG=$PWD/kubeconfig
+          kubectl version --client
+          kubectl config view
+
+      - name: Apply base resources (ns, db, cm, secrets)
+        run: |
+          export KUBECONFIG=$PWD/kubeconfig
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -n demo -f k8s/secret.yaml
+          kubectl apply -n demo -f k8s/configmap.yaml
+          kubectl apply -n demo -f k8s/db-service.yaml
+          kubectl apply -n demo -f k8s/db-statefulset.yaml
+
+      - name: Ensure both colors exist (no downtime)
+        run: |
+          export KUBECONFIG=$PWD/kubeconfig
+          kubectl apply -n demo -f k8s/web-deploy-blue.yaml
+          kubectl apply -n demo -f k8s/web-deploy-green.yaml
+          kubectl apply -n demo -f k8s/web-service.yaml
+
+      - name: Update image on idle color
+        run: |
+          export KUBECONFIG=$PWD/kubeconfig
+          CUR_COLOR=$(kubectl -n demo get svc web -o jsonpath='{.spec.selector.color}')
+          echo "Current color: $CUR_COLOR"
+          if [ "${{ github.event.inputs.to_color }}" = "$CUR_COLOR" ]; then
+            echo "Target equals current — nothing to switch."; exit 0
+          fi
+          if [ "${{ github.event.inputs.to_color }}" = "green" ]; then
+            kubectl -n demo set image deploy/web-green web=${{ env.IMAGE }}:${{ github.sha }} --record
+            kubectl -n demo rollout status deploy/web-green
+          else
+            kubectl -n demo set image deploy/web-blue web=${{ env.IMAGE }}:${{ github.sha }} --record
+            kubectl -n demo rollout status deploy/web-blue
+          fi
+
+      - name: Smoke test new color
+        run: |
+          # при желании добавь curl к сервису/ingress, healthcheck и т.д.
+          echo "Smoke tests placeholder"
+
+      - name: Switch Service selector to new color
+        run: |
+          export KUBECONFIG=$PWD/kubeconfig
+          kubectl -n demo patch svc web -p "{\"spec\":{\"selector\":{\"app\":\"web\",\"color\":\"${{ github.event.inputs.to_color }}\"}}}"
+          kubectl -n demo get svc web -o wide

@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-green
+  namespace: demo
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: web, color: green } }
+  template:
+    metadata: { labels: { app: web, color: green } }
+    spec:
+      containers:
+      - name: web
+        image: DOCKERHUB_USER/bluegreen-demo:latest
+        ports: [{ containerPort: 80 }]
+        envFrom:
+          - configMapRef: { name: app-config }
+          - secretRef:    { name: app-secret }

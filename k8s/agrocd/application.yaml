@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: bluegreen-demo
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    namespace: demo
+    server: https://kubernetes.default.svc
+  source:
+    repoURL: https://github.com/soulkevo/DevOps-Homework4.git
+    targetRevision: main
+    path: k8s
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
