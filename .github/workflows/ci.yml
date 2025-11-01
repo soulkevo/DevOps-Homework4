@@ -16,10 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Python test
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Run tests
         run: |
           pip install -r app/requirements.txt
           pytest -q
