@@ -5,7 +5,7 @@ metadata:
   namespace: demo
 spec:
   type: NodePort            
-  selector: { app: web, color: blue }   
+  selector: { app: web, color: green }   
   ports:
     - port: 80
       targetPort: 80
