@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
       - name: web
-        image: kevo8/bluegreen-demo:20251101070646
+        image: kevo8/bluegreen-demo:20251101072022
         ports: [{ containerPort: 80 }]
         envFrom:
           - configMapRef: { name: app-config }
