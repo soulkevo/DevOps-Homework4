@@ -1,4 +1,5 @@
 name: CI
+
 on:
   push:
     branches: [ main ]
@@ -11,13 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/bluegreen-demo
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Python test
-      - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
-      - run: |
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+        run: |
           pip install -r app/requirements.txt
           pytest -q
 
@@ -37,5 +40,5 @@ jobs:
             ${{ env.IMAGE }}:latest
 
       - name: Set image tag output
-        id: meta
+        id: image
         run: echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
